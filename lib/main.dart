@@ -177,7 +177,7 @@ class _MapScreenState extends State<MapScreen> {
     Capital(
       name: 'Fuerte Olimpo',
       department: 'Alto Paraguay',
-      population: 6000,
+      population: 7500,
       coordinates: LatLng(-21.0475, -57.8767),
     ),
   ];
@@ -186,7 +186,7 @@ class _MapScreenState extends State<MapScreen> {
   late double _maxPopulation;
 
   static const _initialMapCenter = LatLng(-23.4425, -58.4438);
-  static const _initialZoom = 6.0;
+  static const _initialZoom = 7.0;
   static const _detailZoom = 10.0;
 
   @override
@@ -550,7 +550,7 @@ class _MapScreenState extends State<MapScreen> {
       options: MapOptions(
         initialCenter: _initialMapCenter,
         initialZoom: _initialZoom,
-        minZoom: 5.0,
+        minZoom: 7.0,
         maxZoom: 18.0,
         interactionOptions: const InteractionOptions(
           flags: InteractiveFlag.all,
