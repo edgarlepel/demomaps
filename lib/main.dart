@@ -321,7 +321,8 @@ class _MapScreenState extends State<MapScreen> {
         height: 40.0,
         child: Tooltip(
           message:
-              '${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
+              //'${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
+              '${capital.name}\n${capital.department}\n${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.\n'
               '${capital.coordinates.latitude.toStringAsFixed(4)}, '
               '${capital.coordinates.longitude.toStringAsFixed(4)}',
           preferBelow: false,
@@ -369,9 +370,9 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String _getPopulationCategory(int population) {
-    if (population >= 200000) return 'Más de 200,000 hab.';
-    if (population >= 100000) return '100,000 - 200,000 hab.';
-    return 'Menos de 100,000 hab.';
+    if (population >= 200000) return 'Más de 200.000 hab.';
+    if (population >= 100000) return '100.000 - 200.000 hab.';
+    return 'Menos de 100.000 hab.';
   }
 
   Marker _createMarker(Capital capital) {
@@ -385,7 +386,8 @@ class _MapScreenState extends State<MapScreen> {
       height: 40.0,
       child: Tooltip(
         message:
-            '${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
+            //'${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
+            '${capital.name}\n${capital.department}\n${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.\n'
             '${capital.coordinates.latitude.toStringAsFixed(4)}, '
             '${capital.coordinates.longitude.toStringAsFixed(4)}',
         preferBelow: false,
@@ -458,7 +460,8 @@ class _MapScreenState extends State<MapScreen> {
               _buildInfoRow(
                 Icons.people,
                 'Población',
-                '${capital.population.toStringAsFixed(0)} hab.',
+                //'${capital.population.toStringAsFixed(0)} hab.',
+                '${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.',
               ),
               const SizedBox(height: 8),
               _buildInfoRow(
@@ -888,4 +891,23 @@ List<Capital> _filterCapitals(_FilterData data) {
         data.departments.contains(capital.department);
     return inPopulationRange && byDepartment;
   }).toList();
+}
+
+String formatNumberWithThousandsSeparator(String numberString) {
+  // Eliminar cualquier caracter no numérico (excepto el punto decimal, si lo hubiera)
+  String cleanedString = numberString.replaceAll(RegExp(r'[^\d.]'), '');
+
+  // Separar la parte entera de la parte decimal
+  List<String> parts = cleanedString.split('.');
+  String integerPart = parts[0];
+  String decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+
+  // Usar una expresión regular para insertar puntos cada tres dígitos desde la derecha en la parte entera
+  RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
+  String formattedIntegerPart = integerPart.replaceAllMapped(
+    reg,
+    (Match match) => '${match[1]}.',
+  );
+
+  return formattedIntegerPart + decimalPart;
 }
