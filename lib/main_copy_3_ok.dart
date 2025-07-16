@@ -230,8 +230,8 @@ class _MapScreenState extends State<MapScreen> {
     uniqueDepartments.sort();
     setState(() {
       _allDepartments = uniqueDepartments;
-      // MODIFICADO: Inicializar con todos los departamentos seleccionados
-      _selectedDepartments = List.from(uniqueDepartments);
+      // Puedes inicializar _selectedDepartments con todos si quieres que se muestren por defecto
+      // _selectedDepartments = List.from(uniqueDepartments);
     });
   }
 
@@ -289,9 +289,9 @@ class _MapScreenState extends State<MapScreen> {
     return allCapitals.where((capital) {
       final inPopulationRange =
           capital.population >= range.start && capital.population <= range.end;
-      // MODIFICADO: Si la lista está vacía, no mostrar ninguno
+      // Si no hay departamentos seleccionados o "Todos" está implícito (lista vacía), no filtrar por departamento
       final byDepartment =
-          departments.isNotEmpty && departments.contains(capital.department);
+          departments.isEmpty || departments.contains(capital.department);
       return inPopulationRange && byDepartment;
     }).toList();
   }
@@ -709,75 +709,46 @@ class _MapScreenState extends State<MapScreen> {
                   final List<String>? result = await showDialog<List<String>>(
                     context: context,
                     builder: (BuildContext dialogContext) {
+                      // Usamos un StateSetter local para actualizar el estado del diálogo sin reconstruir la pantalla principal
                       List<String> tempSelectedDepartments = List.from(
                         _selectedDepartments,
                       );
                       return StatefulBuilder(
                         builder: (context, setDialogState) {
-                          // NUEVO: Calcular si todos están seleccionados
-                          bool allSelected =
-                              tempSelectedDepartments.length ==
-                              _allDepartments.length;
-
                           return AlertDialog(
                             title: const Text('Seleccionar Departamentos'),
                             content: SingleChildScrollView(
                               child: Column(
-                                children: [
-                                  // NUEVO: Opción "Todos"
-                                  CheckboxListTile(
-                                    title: const Text(
-                                      'Todos',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                children: _allDepartments.map((department) {
+                                  return CheckboxListTile(
+                                    title: Text(department),
+                                    value: tempSelectedDepartments.contains(
+                                      department,
                                     ),
-                                    value: allSelected,
                                     onChanged: (bool? isChecked) {
                                       setDialogState(() {
                                         if (isChecked == true) {
-                                          // Seleccionar todos
-                                          tempSelectedDepartments = List.from(
-                                            _allDepartments,
+                                          tempSelectedDepartments.add(
+                                            department,
                                           );
                                         } else {
-                                          // Deseleccionar todos
-                                          tempSelectedDepartments.clear();
+                                          tempSelectedDepartments.remove(
+                                            department,
+                                          );
                                         }
                                       });
                                     },
-                                  ),
-                                  const Divider(), // Separador visual
-                                  // Lista de departamentos individuales
-                                  ..._allDepartments.map((department) {
-                                    return CheckboxListTile(
-                                      title: Text(department),
-                                      value: tempSelectedDepartments.contains(
-                                        department,
-                                      ),
-                                      onChanged: (bool? isChecked) {
-                                        setDialogState(() {
-                                          if (isChecked == true) {
-                                            tempSelectedDepartments.add(
-                                              department,
-                                            );
-                                          } else {
-                                            tempSelectedDepartments.remove(
-                                              department,
-                                            );
-                                          }
-                                        });
-                                      },
-                                    );
-                                  }),
-                                ],
+                                  );
+                                }).toList(),
                               ),
                             ),
                             actions: <Widget>[
                               TextButton(
                                 child: const Text('Cancelar'),
                                 onPressed: () {
-                                  Navigator.of(dialogContext).pop(null);
+                                  Navigator.of(
+                                    dialogContext,
+                                  ).pop(null); // No aplicar cambios
                                 },
                               ),
                               ElevatedButton(
@@ -805,14 +776,11 @@ class _MapScreenState extends State<MapScreen> {
                 child: Text(
                   _selectedDepartments.isEmpty
                       ? 'Seleccionar Departamentos'
-                      : _selectedDepartments.length == _allDepartments.length
-                      ? 'Todos los Departamentos'
                       : 'Departamentos Seleccionados (${_selectedDepartments.length})',
                 ),
               ),
-              // Mostrar los departamentos seleccionados como texto
-              if (_selectedDepartments.isNotEmpty &&
-                  _selectedDepartments.length < _allDepartments.length)
+              // Opcional: Mostrar los departamentos seleccionados como texto
+              if (_selectedDepartments.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(
@@ -917,9 +885,9 @@ List<Capital> _filterCapitals(_FilterData data) {
     final inPopulationRange =
         capital.population >= data.range.start &&
         capital.population <= data.range.end;
-    // MODIFICADO: Si la lista está vacía, no mostrar ninguno
+    // Si no hay departamentos seleccionados, se muestran todos. De lo contrario, se filtra por la lista.
     final byDepartment =
-        data.departments.isNotEmpty &&
+        data.departments.isEmpty ||
         data.departments.contains(capital.department);
     return inPopulationRange && byDepartment;
   }).toList();
