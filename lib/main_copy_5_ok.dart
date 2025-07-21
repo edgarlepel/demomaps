@@ -67,11 +67,9 @@ class _MapScreenState extends State<MapScreen> {
   final bool _debugMode = kDebugMode;
 
   late RangeValues _currentPopulationRange;
+  // CAMBIO CLAVE 1: Ahora es una lista para multiselección
   List<String> _selectedDepartments = [];
-  List<String> _allDepartments = [];
-
-  // NUEVO: Estado para controlar la visibilidad de la imagen satelital
-  bool _showSatelliteImagery = true;
+  List<String> _allDepartments = []; // Almacena todos los departamentos únicos
 
   static const List<Capital> paraguayanCapitals = [
     Capital(
@@ -232,6 +230,7 @@ class _MapScreenState extends State<MapScreen> {
     uniqueDepartments.sort();
     setState(() {
       _allDepartments = uniqueDepartments;
+      // MODIFICADO: Inicializar con todos los departamentos seleccionados
       _selectedDepartments = List.from(uniqueDepartments);
     });
   }
@@ -249,7 +248,7 @@ class _MapScreenState extends State<MapScreen> {
         filteredCapitals = _filterCapitalsSync(
           paraguayanCapitals,
           _currentPopulationRange,
-          _selectedDepartments,
+          _selectedDepartments, // Pasa la lista de departamentos seleccionados
         );
         markers = filteredCapitals.map(_createMarker).toList();
       } else {
@@ -258,7 +257,7 @@ class _MapScreenState extends State<MapScreen> {
           _FilterData(
             allCapitals: paraguayanCapitals,
             range: _currentPopulationRange,
-            departments: _selectedDepartments,
+            departments: _selectedDepartments, // Pasa la lista
           ),
         );
         markers = await _computeMarkers(filteredCapitals);
@@ -281,6 +280,7 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // CAMBIO CLAVE 3: _filterCapitalsSync ahora toma una lista de departamentos
   List<Capital> _filterCapitalsSync(
     List<Capital> allCapitals,
     RangeValues range,
@@ -289,6 +289,7 @@ class _MapScreenState extends State<MapScreen> {
     return allCapitals.where((capital) {
       final inPopulationRange =
           capital.population >= range.start && capital.population <= range.end;
+      // MODIFICADO: Si la lista está vacía, no mostrar ninguno
       final byDepartment =
           departments.isNotEmpty && departments.contains(capital.department);
       return inPopulationRange && byDepartment;
@@ -320,15 +321,14 @@ class _MapScreenState extends State<MapScreen> {
         height: 40.0,
         child: Tooltip(
           message:
+              //'${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
               '${capital.name}\n${capital.department}\n${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.\n'
               '${capital.coordinates.latitude.toStringAsFixed(4)}, '
               '${capital.coordinates.longitude.toStringAsFixed(4)}',
           preferBelow: false,
           textStyle: const TextStyle(color: Colors.white, fontSize: 12),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(
-              alpha: 0.8,
-            ), // Usa withValues(alpha: ...)
+            color: Colors.black.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(8),
           ),
           waitDuration: const Duration(milliseconds: 500),
@@ -340,7 +340,7 @@ class _MapScreenState extends State<MapScreen> {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3), // Corregido
+                  color: Colors.black.withValues(alpha: 0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -386,13 +386,14 @@ class _MapScreenState extends State<MapScreen> {
       height: 40.0,
       child: Tooltip(
         message:
+            //'${capital.name}\n${capital.department}\n${capital.population.toStringAsFixed(0)} hab.\n'
             '${capital.name}\n${capital.department}\n${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.\n'
             '${capital.coordinates.latitude.toStringAsFixed(4)}, '
             '${capital.coordinates.longitude.toStringAsFixed(4)}',
         preferBelow: false,
         textStyle: const TextStyle(color: Colors.white, fontSize: 12),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.8), // Corregido
+          color: Colors.black.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(8),
         ),
         waitDuration: const Duration(milliseconds: 500),
@@ -406,7 +407,7 @@ class _MapScreenState extends State<MapScreen> {
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.3), // Corregido
+                  color: Colors.black.withValues(alpha: 0.3),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, 2),
@@ -459,6 +460,7 @@ class _MapScreenState extends State<MapScreen> {
               _buildInfoRow(
                 Icons.people,
                 'Población',
+                //'${capital.population.toStringAsFixed(0)} hab.',
                 '${formatNumberWithThousandsSeparator(capital.population.toStringAsFixed(0))} hab.',
               ),
               const SizedBox(height: 8),
@@ -533,9 +535,7 @@ class _MapScreenState extends State<MapScreen> {
                 _buildMap(),
                 _buildLegend(),
                 _buildPopulationFilter(),
-                _buildDepartmentFilter(),
-                // NUEVO: Botón para alternar la imagen satelital
-                _buildSatelliteToggle(),
+                _buildDepartmentFilter(), // Este es el widget modificado
               ],
             ),
       floatingActionButton: FloatingActionButton(
@@ -560,18 +560,22 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
       children: [
-        // 1. Capa Base: Imagen Satelital (condicionalmente visible)
-        if (_showSatelliteImagery) // Aquí se aplica la condición
-          TileLayer(
-            urlTemplate:
-                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            userAgentPackageName: 'com.example.paraguay_capitals_map',
-            maxZoom: 18,
-          ),
+        // 1. Capa Base: Imagen Satelital (fija como fondo)
+        TileLayer(
+          urlTemplate:
+              'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          userAgentPackageName: 'com.example.paraguay_capitals_map',
+          maxZoom: 18,
+          // **IMPORTANTE**: No te olvides de la atribución si usas Esri.
+          // Puedes añadirla con un RichAttributionWidget en nonRotatedChildren
+          // o directamente en el TileLayer si la librería lo soporta (depende de la versión).
+          // Para Flutter Map 8.x.x es mejor nonRotatedChildren.
+        ),
 
         // 2. Capa de Superposición: OpenStreetMap (semitransparente para límites y calles)
         Opacity(
-          opacity: 0.5,
+          opacity:
+              0.5, // Ajusta este valor para la transparencia de las calles/límites
           child: TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             userAgentPackageName: 'com.example.paraguay_capitals_map',
@@ -696,6 +700,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  // CAMBIO CLAVE 2: Nuevo widget de filtro por departamento multiselect
   Widget _buildDepartmentFilter() {
     return Positioned(
       top: 150,
@@ -728,6 +733,7 @@ class _MapScreenState extends State<MapScreen> {
                       );
                       return StatefulBuilder(
                         builder: (context, setDialogState) {
+                          // NUEVO: Calcular si todos están seleccionados
                           bool allSelected =
                               tempSelectedDepartments.length ==
                               _allDepartments.length;
@@ -737,6 +743,7 @@ class _MapScreenState extends State<MapScreen> {
                             content: SingleChildScrollView(
                               child: Column(
                                 children: [
+                                  // NUEVO: Opción "Todos"
                                   CheckboxListTile(
                                     title: const Text(
                                       'Todos',
@@ -748,16 +755,19 @@ class _MapScreenState extends State<MapScreen> {
                                     onChanged: (bool? isChecked) {
                                       setDialogState(() {
                                         if (isChecked == true) {
+                                          // Seleccionar todos
                                           tempSelectedDepartments = List.from(
                                             _allDepartments,
                                           );
                                         } else {
+                                          // Deseleccionar todos
                                           tempSelectedDepartments.clear();
                                         }
                                       });
                                     },
                                   ),
-                                  const Divider(),
+                                  const Divider(), // Separador visual
+                                  // Lista de departamentos individuales
                                   ..._allDepartments.map((department) {
                                     return CheckboxListTile(
                                       title: Text(department),
@@ -819,6 +829,7 @@ class _MapScreenState extends State<MapScreen> {
                       : 'Departamentos Seleccionados (${_selectedDepartments.length})',
                 ),
               ),
+              // Mostrar los departamentos seleccionados como texto
               if (_selectedDepartments.isNotEmpty &&
                   _selectedDepartments.length < _allDepartments.length)
                 Padding(
@@ -830,44 +841,6 @@ class _MapScreenState extends State<MapScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // NUEVO: Widget para el interruptor de la imagen satelital
-  Widget _buildSatelliteToggle() {
-    return Positioned(
-      top:
-          350, // Ajusta esta posición según sea necesario para que no se superponga
-      left: 16,
-      child: Material(
-        elevation: 4,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Imagen Satelital',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(width: 8),
-              Switch(
-                value: _showSatelliteImagery,
-                onChanged: (bool value) {
-                  setState(() {
-                    _showSatelliteImagery = value;
-                  });
-                },
-              ),
             ],
           ),
         ),
@@ -907,10 +880,10 @@ class _MapScreenState extends State<MapScreen> {
                 Text('   - Rojo: -100,000 hab.'),
                 Text('• Navegación interactiva'),
                 Text('• Filtro por rango de población'),
-                Text('• Filtro por departamento (multiselección)'),
+                Text(
+                  '• Filtro por departamento (multiselección)',
+                ), // Actualizado
                 Text('• Optimizado para rendimiento'),
-                // NUEVO: Característica de imagen satelital
-                Text('• Opción de ver/ocultar imagen satelital'),
                 SizedBox(height: 16),
                 Text(
                   'Toca cualquier marcador para ver información detallada.',
@@ -947,6 +920,7 @@ class _IsolateData {
 class _FilterData {
   final List<Capital> allCapitals;
   final RangeValues range;
+  // CAMBIO CLAVE 3: Ahora es una lista de departamentos
   final List<String> departments;
 
   _FilterData({
@@ -956,11 +930,13 @@ class _FilterData {
   });
 }
 
+// CAMBIO CLAVE 3: _filterCapitals ahora toma una lista de departamentos
 List<Capital> _filterCapitals(_FilterData data) {
   return data.allCapitals.where((capital) {
     final inPopulationRange =
         capital.population >= data.range.start &&
         capital.population <= data.range.end;
+    // MODIFICADO: Si la lista está vacía, no mostrar ninguno
     final byDepartment =
         data.departments.isNotEmpty &&
         data.departments.contains(capital.department);
@@ -969,14 +945,20 @@ List<Capital> _filterCapitals(_FilterData data) {
 }
 
 String formatNumberWithThousandsSeparator(String numberString) {
+  // Eliminar cualquier caracter no numérico (excepto el punto decimal, si lo hubiera)
   String cleanedString = numberString.replaceAll(RegExp(r'[^\d.]'), '');
+
+  // Separar la parte entera de la parte decimal
   List<String> parts = cleanedString.split('.');
   String integerPart = parts[0];
   String decimalPart = parts.length > 1 ? '.${parts[1]}' : '';
+
+  // Usar una expresión regular para insertar puntos cada tres dígitos desde la derecha en la parte entera
   RegExp reg = RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))');
   String formattedIntegerPart = integerPart.replaceAllMapped(
     reg,
     (Match match) => '${match[1]}.',
   );
+
   return formattedIntegerPart + decimalPart;
 }
